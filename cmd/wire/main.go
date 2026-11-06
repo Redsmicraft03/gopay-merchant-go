@@ -77,9 +77,9 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"mitrain-gopay/internal/gobiz"
-	"mitrain-gopay/internal/wire"
-	"mitrain-gopay/internal/wirelog"
+	"gopay-merchant-go/internal/gobiz"
+	"gopay-merchant-go/internal/wire"
+	"gopay-merchant-go/internal/wirelog"
 )
 
 func envOr(key, def string) string {

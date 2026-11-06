@@ -8,9 +8,9 @@ wire-decisions.log
 *.err
 
 # Binary hasil build
-/mitrain-gopay-server
-/mitrain-gopay-wire
-/mitrain-gopay-login
+/gopay-merchant-go-server
+/gopay-merchant-go-wire
+/gopay-merchant-go-login
 *.exe
 
 # Arsip transfer sekali pakai

@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"mitrain-gopay/internal/types"
+	"gopay-merchant-go/internal/types"
 )
 
 func TestKonversiBridgeOrder(t *testing.T) {

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"mitrain-gopay/internal/gobiz"
-	"mitrain-gopay/internal/types"
-	"mitrain-gopay/internal/wirelog"
+	"gopay-merchant-go/internal/gobiz"
+	"gopay-merchant-go/internal/types"
+	"gopay-merchant-go/internal/wirelog"
 )
 
 func order() types.OrderPending {

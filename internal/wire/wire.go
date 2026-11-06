@@ -46,9 +46,9 @@ import (
 	"strings"
 	"time"
 
-	"mitrain-gopay/internal/gobiz"
-	"mitrain-gopay/internal/match"
-	"mitrain-gopay/internal/types"
+	"gopay-merchant-go/internal/gobiz"
+	"gopay-merchant-go/internal/match"
+	"gopay-merchant-go/internal/types"
 )
 
 // SettleInput adalah body POST settlement ke mitra-tools.

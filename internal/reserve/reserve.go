@@ -16,8 +16,8 @@ import (
 	"errors"
 	"time"
 
-	"mitrain-gopay/internal/mdr"
-	"mitrain-gopay/internal/store"
+	"gopay-merchant-go/internal/mdr"
+	"gopay-merchant-go/internal/store"
 )
 
 // Result adalah hasil reservasi: Reservation + rincian breakdown.

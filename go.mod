@@ -1,4 +1,4 @@
-module mitrain-gopay
+module gopay-merchant-go
 
 go 1.26.0
 

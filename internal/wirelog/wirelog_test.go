@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"mitrain-gopay/internal/types"
+	"gopay-merchant-go/internal/types"
 )
 
 func TestAppendWireLogSatuBarisJSON(t *testing.T) {

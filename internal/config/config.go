@@ -16,8 +16,8 @@ import (
 	"strconv"
 	"strings"
 
-	"mitrain-gopay/internal/gobiz"
-	"mitrain-gopay/internal/mock"
+	"gopay-merchant-go/internal/gobiz"
+	"gopay-merchant-go/internal/mock"
 )
 
 // ServerConfig adalah konfigurasi server poller Fiber.

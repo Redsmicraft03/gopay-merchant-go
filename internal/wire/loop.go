@@ -30,8 +30,8 @@ import (
 	"fmt"
 	"time"
 
-	"mitrain-gopay/internal/gobiz"
-	"mitrain-gopay/internal/wirelog"
+	"gopay-merchant-go/internal/gobiz"
+	"gopay-merchant-go/internal/wirelog"
 )
 
 // LoopInput adalah konfigurasi loop wire. Semua field dibaca dari

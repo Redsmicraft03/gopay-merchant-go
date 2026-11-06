@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"mitrain-gopay/internal/mdr"
-	"mitrain-gopay/internal/store"
+	"gopay-merchant-go/internal/mdr"
+	"gopay-merchant-go/internal/store"
 )
 
 func fixedNow() time.Time {

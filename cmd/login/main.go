@@ -43,7 +43,7 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"mitrain-gopay/internal/gobiz"
+	"gopay-merchant-go/internal/gobiz"
 )
 
 func ask(reader *bufio.Reader, question string) (string, error) {

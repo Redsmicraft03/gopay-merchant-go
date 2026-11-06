@@ -4,7 +4,7 @@
 //
 //	go run ./cmd/server
 //	# atau, setelah build:
-//	./mitrain-gopay-server
+//	./gopay-merchant-go-server
 //
 // Konfigurasi lewat env (lihat .env.example; file .env di folder
 // kerja dibaca otomatis via godotenv, env manual tetap menang): PORT (default 3101,
@@ -45,10 +45,10 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"mitrain-gopay/internal/config"
-	"mitrain-gopay/internal/gobiz"
-	"mitrain-gopay/internal/server"
-	"mitrain-gopay/internal/wire"
+	"gopay-merchant-go/internal/config"
+	"gopay-merchant-go/internal/gobiz"
+	"gopay-merchant-go/internal/server"
+	"gopay-merchant-go/internal/wire"
 )
 
 func main() {

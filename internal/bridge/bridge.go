@@ -34,7 +34,7 @@ import (
 	"strings"
 	"time"
 
-	"mitrain-gopay/internal/types"
+	"gopay-merchant-go/internal/types"
 )
 
 // BridgeOrder adalah order dari mock jembatan POC.

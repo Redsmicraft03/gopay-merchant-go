@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"mitrain-gopay/internal/types"
+	"gopay-merchant-go/internal/types"
 )
 
 func order(over func(*types.OrderPending)) types.OrderPending {

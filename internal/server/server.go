@@ -58,7 +58,7 @@
 // bukan proses terpisah. POST /notify-order hanya MEMBANGUNKAN
 // loop internal itu (bila sedang jalan); bila loop internal tidak
 // jalan, fallback-nya tetap memicu satu siklus wire lewat subprocess
-// mitrain-gopay-wire.exe bila binary-nya ada. Bila keduanya tidak
+// gopay-merchant-go-wire.exe bila binary-nya ada. Bila keduanya tidak
 // ada, notifikasi tetap dicatat dan tidak ada settlement sampai
 // loop dinyalakan.
 package server
@@ -77,18 +77,18 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 
-	"mitrain-gopay/internal/config"
-	"mitrain-gopay/internal/gobiz"
-	"mitrain-gopay/internal/match"
-	"mitrain-gopay/internal/mdr"
-	"mitrain-gopay/internal/mock"
-	"mitrain-gopay/internal/reserve"
-	"mitrain-gopay/internal/store"
-	"mitrain-gopay/internal/types"
+	"gopay-merchant-go/internal/config"
+	"gopay-merchant-go/internal/gobiz"
+	"gopay-merchant-go/internal/match"
+	"gopay-merchant-go/internal/mdr"
+	"gopay-merchant-go/internal/mock"
+	"gopay-merchant-go/internal/reserve"
+	"gopay-merchant-go/internal/store"
+	"gopay-merchant-go/internal/types"
 )
 
 const (
-	ServiceName = "mitrain-gopay-poller"
+	ServiceName = "gopay-merchant-go-poller"
 	Version     = "1.0.0"
 	AuditCap    = 1000
 )
@@ -675,7 +675,7 @@ func (s *Server) handleReserve(requireToken bool) fiber.Handler {
 // mitra-tools (push, perintah Hanif). Endpoint ini TIDAK mengubah
 // saldo/status sendiri dan TIDAK mengkredit: ia hanya mencatat
 // order yang diberitahukan, lalu MEMICU satu siklus wire
-// (subprocess mitrain-gopay-wire.exe, bila binary-nya ada di folder
+// (subprocess gopay-merchant-go-wire.exe, bila binary-nya ada di folder
 // kerja server) secara async — respons tidak menunggu siklus itu
 // selesai. Settlement tetap dilakukan wire itu lewat endpoint
 // internal mitra-tools, sama seperti loop. Bila binary tidak ada
@@ -730,7 +730,7 @@ func (s *Server) triggerWireOnce() bool {
 	}
 	binary := os.Getenv("WIRE_BINARY_PATH")
 	if binary == "" {
-		binary = "./mitrain-gopay-wire.exe"
+		binary = "./gopay-merchant-go-wire.exe"
 	}
 	if _, err := os.Stat(binary); err != nil {
 		s.mu.Unlock()

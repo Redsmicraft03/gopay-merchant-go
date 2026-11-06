@@ -15,7 +15,7 @@
 // sehingga identitas hanya lewat total_snapshot).
 // TIDAK PERNAH token, sesi GoBiz, nilai environment, nomor HP, atau
 // payload QRIS. File default: wire-decisions.log di working directory
-// proses (folder mitrain-gopay-go bila dijalankan dari sana); bisa
+// proses (folder gopay-merchant-go bila dijalankan dari sana); bisa
 // diubah lewat env WIRE_LOG_PATH. Kegagalan menulis log TIDAK BOLEH
 // menggagalkan siklus — ia dicatat ke stderr saja.
 package wirelog
@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"mitrain-gopay/internal/types"
+	"gopay-merchant-go/internal/types"
 )
 
 // RejectedEntry adalah satu settlement yang ditolak mitra-tools.

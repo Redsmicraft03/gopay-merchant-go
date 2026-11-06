@@ -42,7 +42,7 @@ import (
 	"sort"
 	"time"
 
-	"mitrain-gopay/internal/types"
+	"gopay-merchant-go/internal/types"
 )
 
 // MatchRule adalah penanda aturan yang lolos (di proposal).

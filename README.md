@@ -1,4 +1,4 @@
-# mitrain-gopay-go
+# gopay-merchant-go
 
 Robot pengecek pembayaran GoBiz + penghubung settlement untuk topup
 Talent Tools (mitra-tools). Satu perintah menjalankan semuanya:
@@ -30,7 +30,7 @@ pernah** mengakses database mitra-tools langsung.
 
 ```powershell
 # 1. Masuk folder proyek
-cd G:\KafeinArt\mitrain-gopay-go
+cd G:\KafeinArt\gopay-merchant-go
 
 # 2. Salin contoh konfigurasi, lalu isi nilai yang wajib
 copy .env.example .env
@@ -63,8 +63,8 @@ Jalankan semuanya **dari folder proyek** (file `.env`, sesi,
 go run ./cmd/server
 
 # Build binary dulu, baru jalankan
-go build -o mitrain-gopay-server.exe ./cmd/server
-.\mitrain-gopay-server.exe
+go build -o gopay-merchant-go-server.exe ./cmd/server
+.\gopay-merchant-go-server.exe
 
 # Login GoBiz (interaktif: HP, lalu OTP)
 go run ./cmd/login
@@ -203,7 +203,7 @@ data/                # orders.dummy.json + mutations.dummy.json (dummy)
 
 ## Riwayat & catatan kejujuran
 
-- Migrasi dari TypeScript/Bun (`mitrain-gopay`) ke Go pada
+- Migrasi dari proyek TypeScript/Bun lama ke Go pada
   2026-10-29. Versi TS lama tetap ada berdampingan dan tidak
   dihapus.
 - Verifikasi sandbox 2026-10-29: `gofmt` bersih, `go vet` exit 0,

@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"mitrain-gopay/internal/config"
-	"mitrain-gopay/internal/gobiz"
-	"mitrain-gopay/internal/store"
+	"gopay-merchant-go/internal/config"
+	"gopay-merchant-go/internal/gobiz"
+	"gopay-merchant-go/internal/store"
 )
 
 func testConfig(t *testing.T, dataDir string) config.ServerConfig {
