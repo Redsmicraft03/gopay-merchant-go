@@ -28,7 +28,7 @@
 //     Penerimaan live atas kombinasi client/version ini MASIH BELUM
 //     TERBUKTI; uji live hanya dengan akun dummy, bukan akun produksi.
 //   - Script ini TIDAK melakukan transfer, TIDAK mengubah saldo/status,
-//     TIDAK mengakses database mitra-tools, TIDAK auto-credit.
+//     TIDAK mengakses database backend, TIDAK auto-credit.
 //   - File sesi TIDAK BOLEH di-commit atau dikirim ke siapa pun;
 //     token di dalamnya plaintext.
 package main

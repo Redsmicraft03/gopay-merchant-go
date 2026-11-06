@@ -1,8 +1,8 @@
 // Package bridge adalah antarmuka pembaca order + pengirim usulan
-// untuk mitra-tools — JEMBATAN POC, BUKAN endpoint mitra-tools asli.
+// untuk backend — JEMBATAN POC, BUKAN endpoint backend asli.
 //
-// Endpoint mitra-tools ASLI (GET pending-orders / POST proposals)
-// BELUM DIBANGUN di tugas POC ini dan masih menunggu kunci Bagus +
+// Endpoint backend ASLI (GET pending-orders / POST proposals)
+// BELUM DIBANGUN di tugas POC ini dan masih menunggu kunci kontrak +
 // perintah terpisah. Yang ada di sini hanyalah bentuk request/response
 // yang dipakai poller, diuji melawan MOCK HTTP lokal di tes, bukan
 // DB asli dan bukan API asli.
@@ -19,7 +19,7 @@
 // expiry_at = expires_at, grace_end_at = expires_at. Artinya jendela
 // module GoPay ini adalah reservasi 15 menit itu sendiri, TANPA grace
 // tambahan — eksplisit, berbeda dari kontrak lama 60+15 yang berlaku
-// untuk module lain. Bila mitra-tools nanti memakai grace, grace itu
+// untuk module lain. Bila backend nanti memakai grace, grace itu
 // harus dikirim sebagai field terpisah dan konversinya diubah di sini,
 // bukan ditebak.
 package bridge

@@ -7,7 +7,7 @@
 //     orders.dummy.json:    array JSON dari objek OrderPending
 //     mutations.dummy.json: array JSON dari objek Mutasi
 //     Format ini HANYA untuk mock lokal; ia bukan klaim format API
-//     GoBiz asli dan bukan format endpoint internal mitra-tools.
+//     GoBiz asli dan bukan format endpoint internal backend.
 //   - Loader ini sengaja TIDAK memvalidasi isi secara diam-diam: ia
 //     mengembalikan array mentah apa adanya, dan validasi per item
 //     dilakukan oleh match (input tidak valid -> entri ERROR, bukan

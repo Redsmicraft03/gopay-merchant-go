@@ -32,7 +32,7 @@ const (
 )
 
 // OrderPending adalah order PENDING dari file dummy, endpoint internal
-// mitra-tools, atau jembatan POC (setelah konversi).
+// backend, atau jembatan POC (setelah konversi).
 type OrderPending struct {
 	OrderID       string `json:"order_id"`
 	TotalSnapshot int64  `json:"total_snapshot"`

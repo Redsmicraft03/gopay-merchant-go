@@ -10,11 +10,11 @@
 // login bisa berhenti jalan. Pemakaian agresif berisiko pembatasan
 // akun. Modul ini HANYA boleh diuji dengan akun dummy dulu, dan
 // TIDAK BOLEH dipakai ke akun merchant produksi tanpa keputusan
-// terpisah pemilik akun + kunci kontrak dari Bagus.
+// terpisah pemilik akun + kunci kontrak.
 //
 // MODUL INI HANYA MELAKUKAN GET TRANSAKSI (read-only) + alur login
 // OTP. Tidak ada transfer, tidak ada ubah saldo/status, tidak ada
-// auto-credit, tidak ada akses database mitra-tools.
+// auto-credit, tidak ada akses database backend.
 //
 // KEAMANAN SESI (lebih ketat dari repo sumber studi):
 //   - File sesi lokal service HANYA berisi: accessToken, refreshToken,
@@ -795,7 +795,7 @@ func MapGobizTransactions(raw any) (mutations []types.Mutasi, skipped int) {
 			skipped++
 			continue
 		}
-		// BUKTI LIVE 2026-10-29 (screenshot riwayat Hanif, bukan
+		// BUKTI LIVE 2026-10-29 (bukan
 		// tebakan): pembayaran Rp 2.780 tampil 278000 dan Rp 2.216
 		// tampil 221600, dengan waktu yang persis cocok (12:20 dan
 		// 17:28). Jadi GoBiz mengirim nominal dalam satuan minor

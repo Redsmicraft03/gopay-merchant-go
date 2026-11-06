@@ -14,7 +14,7 @@
 // demo, klaim hilang saat restart — produksi WAJIB DATABASE_URL),
 // UI_PATH (default web/ui.html).
 //
-// Server + wire jadi SATU PROSES sejak 2026-10-29 (perintah Hanif:
+// Server + wire jadi SATU PROSES sejak 2026-10-29 (keputusan:
 // nyalakan aplikasi GoPay = 1 perintah, 1 terminal, bukan server
 // dan wire terpisah). Menyalakan server ini otomatis menjalankan
 // wire loop settlement di dalam proses yang sama (goroutine,
@@ -25,12 +25,12 @@
 // restart server. Proses wire mandiri (cmd/wire -loop) tetap bisa
 // jalan sendiri, tapi JANGAN dijalankan bersamaan dengan server ini
 // — dua loop akan bersaing memeriksa order yang sama (pengaman
-// ganda tetap penolakan reuse transaction_id di mitra-tools, tapi
+// ganda tetap penolakan reuse transaction_id di backend, tapi
 // lognya jadi berisik dan siklusnya ganda).
 //
 // Server ini TIDAK mengkredit sendiri: settlement tetap dilakukan
 // wire loop (paket internal/wire yang sama dengan cmd/wire) lewat
-// endpoint internal mitra-tools. Berhenti bersih dengan Ctrl+C
+// endpoint internal backend. Berhenti bersih dengan Ctrl+C
 // (SIGINT) / SIGTERM: server shutdown DAN wire loop berhenti.
 package main
 
@@ -82,12 +82,12 @@ func main() {
 		srv.SetWireWake(wireWake)
 		baseMs := wire.ParseIntervalMs(os.Getenv("WIRE_POLL_INTERVAL_MS"), wire.DefaultWireIntervalMs)
 		maxIdleMs := wire.ParseIntervalMs(os.Getenv("WIRE_MAX_IDLE_MS"), wire.DefaultWireMaxIdleMs)
-		baseURL := os.Getenv("MITRA_BASE_URL")
+		baseURL := os.Getenv("BACKEND_BASE_URL")
 		if strings.TrimSpace(baseURL) == "" {
 			baseURL = "http://localhost:8080"
 		}
 		go wire.RunLoop(ctx, wire.LoopInput{
-			MitraBaseURL: baseURL, Token: token, GobizConfig: gobiz.ConfigFromEnv(),
+			BackendBaseURL: baseURL, Token: token, GobizConfig: gobiz.ConfigFromEnv(),
 			BaseMs: baseMs, MaxIdleMs: maxIdleMs, Wake: wireWake,
 		})
 		log.Printf("[poller] Wire loop AKTIF di proses ini (interval %d ms). Server + wire = 1 proses.", baseMs)

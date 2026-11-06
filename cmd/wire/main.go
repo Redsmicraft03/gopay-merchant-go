@@ -1,4 +1,4 @@
-// Command wire adalah CLI wiring GoPay -> mitra-tools.
+// Command wire adalah CLI wiring GoPay -> backend.
 //
 // Pemakaian (dari folder proyek):
 //
@@ -8,26 +8,26 @@
 // Ini CLI TERPISAH dari server poller. Server /proposals TIDAK
 // diubah perilakunya oleh file ini: wire hanya memanggil
 // RunLiveWireCycle berulang / sekali, memakai endpoint internal
-// mitra-tools yang SUDAH ADA (GET /api/internal/topup/pending-orders
+// backend yang SUDAH ADA (GET /api/internal/topup/pending-orders
 // dan POST /api/internal/topup/settlements), dan TIDAK mengubah
-// logika settlement di mitra-tools.
+// logika settlement di backend.
 //
 // CATATAN KEJUJURAN: asumsi settlement otomatis ini — paymentReference
-// = transaction_id GoBiz — MASIH MENUNGGU KUNCI BAGUS. Total
-// mitra-tools kini sudah termasuk MDR (kode unik yang disimpan backend
+// = transaction_id GoBiz — MASIH MENUNGGU KUNCI KONTRAK. Total
+// backend kini sudah termasuk MDR (kode unik yang disimpan backend
 // per order): total = harga + MDR + fee. Wire ini untuk TES LOKAL
 // dulu, BUKAN produksi.
 //
 // Environment — SAMA dengan wire-cli TS, tidak ada variabel baru
 // kecuali flag -loop:
-//   - MITRA_BASE_URL (opsional, default http://localhost:8080).
-//   - BRIDGE_INTERNAL_TOKEN (wajib): token internal mitra-tools untuk
+//   - BACKEND_BASE_URL (opsional, default http://localhost:8080).
+//   - BRIDGE_INTERNAL_TOKEN (wajib): token internal backend untuk
 //     endpoint /api/internal/topup/*. Bila kosong, CLI keluar dengan
 //     exit 1 TANPA panggilan apa pun.
 //   - WIRE_POLL_INTERVAL_MS (opsional, default 3000): jeda antar
 //     siklus. 3 detik saat ada order PENDING (siklus penuh ke GoBiz)
 //     maupun saat idle (hanya cek backend pending, tanpa GoBiz).
-//     60 detik sudah tidak dipakai lagi (perintah Hanif 2026-10-29:
+//     60 detik sudah tidak dipakai lagi (sejak 2026-10-29:
 //     kelamaan).
 //   - WIRE_MAX_IDLE_MS (opsional, default 300000): batas jeda saat
 //     tidak ada order PENDING (skipped) maupun saat error beruntun.
@@ -39,7 +39,7 @@
 //   - Klaim antar siklus disimpan di memori proses yang sama, jadi
 //     satu transaksi tidak di-settle ulang selama proses ini hidup.
 //     Klaim TIDAK persisten antar proses: bila proses di-restart,
-//     klaim kembali kosong — pengaman gandanya adalah mitra-tools
+//     klaim kembali kosong — pengaman gandanya adalah backend
 //     sendiri yang menolak reuse transaction_id (409).
 //   - Bila tidak ada order PENDING: siklus skipped, GoBiz tidak
 //     dipanggil, siklus itu TIDAK ditulis ke wire-decisions.log,
@@ -61,7 +61,7 @@
 // Output satu siklus: ringkasan JSON ke stdout — TANPA token, TANPA
 // detail sesi GoBiz, TANPA nilai environment apa pun. Exit 0 bila
 // siklus selesai (walau ada rejected); exit 1 bila error konfigurasi,
-// error GoBiz, atau mitra-tools tidak terjangkau.
+// error GoBiz, atau backend tidak terjangkau.
 package main
 
 import (
@@ -147,7 +147,7 @@ func printJSON(v any) {
 
 func runOnce(ctx context.Context, baseURL, token string, cfg gobiz.Config, claimed map[string]bool) (wire.CycleResult, map[string]bool, error) {
 	result, err := wire.RunLiveWireCycle(ctx, wire.LiveCycleInput{
-		MitraBaseURL: baseURL, Token: token, GobizConfig: cfg, Claimed: claimed,
+		BackendBaseURL: baseURL, Token: token, GobizConfig: cfg, Claimed: claimed,
 	})
 	if err != nil {
 		return wire.CycleResult{}, claimed, err
@@ -161,10 +161,10 @@ func main() {
 	loop := flag.Bool("loop", false, "Jalankan loop berkala (tanpa flag = satu siklus).")
 	flag.Parse()
 
-	baseURL := envOr("MITRA_BASE_URL", "http://localhost:8080")
+	baseURL := envOr("BACKEND_BASE_URL", "http://localhost:8080")
 	token := os.Getenv("BRIDGE_INTERNAL_TOKEN")
 	if token == "" {
-		fmt.Fprintln(os.Stderr, "wire: konfigurasi tidak lengkap: BRIDGE_INTERNAL_TOKEN kosong. Isi token internal mitra-tools (berbeda dari POLLER_INTERNAL_TOKEN) sebelum menjalankan wire; tidak ada panggilan yang dilakukan.")
+		fmt.Fprintln(os.Stderr, "wire: konfigurasi tidak lengkap: BRIDGE_INTERNAL_TOKEN kosong. Isi token internal backend (berbeda dari POLLER_INTERNAL_TOKEN) sebelum menjalankan wire; tidak ada panggilan yang dilakukan.")
 		os.Exit(1)
 	}
 	cfg := gobiz.ConfigFromEnv()
@@ -190,7 +190,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	wire.RunLoop(ctx, wire.LoopInput{
-		MitraBaseURL: baseURL, Token: token, GobizConfig: cfg,
+		BackendBaseURL: baseURL, Token: token, GobizConfig: cfg,
 		BaseMs: baseMs, MaxIdleMs: maxIdleMs,
 	})
 }

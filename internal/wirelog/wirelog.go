@@ -30,7 +30,7 @@ import (
 	"gopay-merchant-go/internal/types"
 )
 
-// RejectedEntry adalah satu settlement yang ditolak mitra-tools.
+// RejectedEntry adalah satu settlement yang ditolak backend.
 type RejectedEntry struct {
 	OrderID       string `json:"order_id"`
 	TransactionID string `json:"transaction_id"`

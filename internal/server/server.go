@@ -49,7 +49,7 @@
 //     GET /notified-orders : daftar order yang masuk lewat push.
 //
 // Yang SENGAJA tidak ada: endpoint POST/PUT/DELETE lain, endpoint
-// kredit saldo, endpoint ubah status, akses database mitra-tools,
+// kredit saldo, endpoint ubah status, akses database backend,
 // login OTP GoBiz, dan pemanggilan API GoBiz asli di luar transaksi.
 //
 // Server ini TIDAK mengkredit sendiri dan TIDAK mengubah status
@@ -94,7 +94,7 @@ const (
 )
 
 // NotifiedOrder adalah order yang diberitahukan backend lewat push
-// POST /notify-order (perintah Hanif 2026-10-29). Hanya field aman;
+// POST /notify-order (sejak 2026-10-29). Hanya field aman;
 // tidak ada token, tidak ada data pembayaran mentah.
 type NotifiedOrder struct {
 	OrderID      string `json:"order_id"`
@@ -491,7 +491,7 @@ func (s *Server) handleMutations(c fiber.Ctx) error {
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "konfigurasi-tidak-valid"})
 	}
-	// Perbaikan 2026-10-29, dari bukti live Hanif: /proposals (yang
+	// Perbaikan 2026-10-29, dari bukti live: /proposals (yang
 	// selalu membawa rentang dari order dummy) lolos dengan sumber
 	// gobiz dan Usulan 0, sedangkan /mutations tanpa rentang gagal
 	// sumber-gobiz-error. Kesimpulan: GoBiz menolak query tanpa
@@ -672,13 +672,13 @@ func (s *Server) handleReserve(requireToken bool) fiber.Handler {
 // ---------- Push notifikasi order dari backend (2026-10-29) ----------
 //
 // POST /notify-order menerima pemberitahuan order baru dari backend
-// mitra-tools (push, perintah Hanif). Endpoint ini TIDAK mengubah
+// backend (push). Endpoint ini TIDAK mengubah
 // saldo/status sendiri dan TIDAK mengkredit: ia hanya mencatat
 // order yang diberitahukan, lalu MEMICU satu siklus wire
 // (subprocess gopay-merchant-go-wire.exe, bila binary-nya ada di folder
 // kerja server) secara async — respons tidak menunggu siklus itu
 // selesai. Settlement tetap dilakukan wire itu lewat endpoint
-// internal mitra-tools, sama seperti loop. Bila binary tidak ada
+// internal backend, sama seperti loop. Bila binary tidak ada
 // atau wire sedang berjalan, respons tetap 200 dengan
 // triggered=false dan loop wire (tiap 3 detik) tetap cadangan.
 // Endpoint ini ALAT TES LOKAL (tanpa auth, seperti /ui/reserve):

@@ -13,7 +13,7 @@ func TestRunLoopCtxDibatalkanKembaliSegera(t *testing.T) {
 	cancel()
 	done := make(chan struct{})
 	go func() {
-		RunLoop(ctx, LoopInput{MitraBaseURL: "http://127.0.0.1:1", Token: "TOKEN-TEST", BaseMs: 3000, MaxIdleMs: 300000})
+		RunLoop(ctx, LoopInput{BackendBaseURL: "http://127.0.0.1:1", Token: "TOKEN-TEST", BaseMs: 3000, MaxIdleMs: 300000})
 		close(done)
 	}()
 	select {

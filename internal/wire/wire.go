@@ -1,4 +1,4 @@
-// Package wire adalah wiring GoPay -> mitra-tools: dari usulan
+// Package wire adalah wiring GoPay -> backend: dari usulan
 // (proposal) menjadi settlement nyata, SATU SIKLUS per pemanggilan
 // (bukan loop; loop ada di cmd/wire dengan flag -loop).
 //
@@ -10,8 +10,8 @@
 //     POST {base}/api/internal/topup/settlements
 //     supaya settlement tidak tertukar dengan proposal non-kredit.
 //
-// Wiring ini TIDAK memakai reserveTotal untuk order mitra-tools.
-// Total mitra-tools datang apa adanya dari endpoint pending-orders
+// Wiring ini TIDAK memakai reserveTotal untuk order backend.
+// Total backend datang apa adanya dari endpoint pending-orders
 // sebagai total_snapshot — sejak 2026-10-28 backend menyimpan MDR
 // (kode unik, 199-1999) per order, sehingga total_snapshot = harga
 // + MDR + fee (fee 0,3% x harga hanya bila harga > 500.000).
@@ -22,17 +22,17 @@
 //
 // KETERBATASAN YANG DICATAT, BUKAN DISEMBUNYIKAN: bila dua order
 // PENDING punya total_snapshot yang sama persis, match memilih order
-// dengan created_at terawal, dan mitra-tools menolak reuse
+// dengan created_at terawal, dan backend menolak reuse
 // transaction_id (satu transaksi hanya untuk satu order).
 //
 // Keamanan: file ini TIDAK membaca file sesi / .env apa pun secara
 // langsung. Konfigurasi GoBiz berasal dari gobiz.Config yang dipakai
-// pemanggil CLI; token mitra-tools hanya diteruskan sebagai header
+// pemanggil CLI; token backend hanya diteruskan sebagai header
 // Authorization dan TIDAK PERNAH dicetak ke log / output oleh
 // fungsi-fungsi di sini.
 //
-// Wire TIDAK PERNAH mengakses DB mitra-tools langsung dan TIDAK
-// PERNAH menambah saldo sendiri. Yang menambah saldo tetap mitra-tools
+// Wire TIDAK PERNAH mengakses DB backend langsung dan TIDAK
+// PERNAH menambah saldo sendiri. Yang menambah saldo tetap backend
 // lewat endpoint settlement-nya, dengan penolakan reuse
 // transaction_id sebagai pengaman anti-dobel-kredit.
 package wire
@@ -51,7 +51,7 @@ import (
 	"gopay-merchant-go/internal/types"
 )
 
-// SettleInput adalah body POST settlement ke mitra-tools.
+// SettleInput adalah body POST settlement ke backend.
 type SettleInput struct {
 	OrderID       string `json:"order_id"`
 	TransactionID string `json:"transaction_id"`
@@ -69,7 +69,7 @@ type SettleResult struct {
 	Body   any
 }
 
-// RejectedSettlement adalah satu proposal yang ditolak mitra-tools.
+// RejectedSettlement adalah satu proposal yang ditolak backend.
 type RejectedSettlement struct {
 	Proposal types.Proposal
 	Status   int
@@ -149,12 +149,12 @@ func parseIntField(v any) (int64, bool) {
 	}
 }
 
-// FetchMitraPendingOrders melakukan
+// FetchBackendPendingOrders melakukan
 // GET {base}/api/internal/topup/pending-orders dengan header
 // Authorization: Bearer <token>. Melempar error yang jelas bila HTTP
 // tidak OK atau bentuk respons tidak valid. Token TIDAK PERNAH
 // dimasukkan ke pesan error.
-func FetchMitraPendingOrders(ctx context.Context, client *http.Client, baseURL, token string) ([]types.OrderPending, error) {
+func FetchBackendPendingOrders(ctx context.Context, client *http.Client, baseURL, token string) ([]types.OrderPending, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
@@ -169,29 +169,29 @@ func FetchMitraPendingOrders(ctx context.Context, client *http.Client, baseURL, 
 	}
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return nil, fmt.Errorf("fetchMitraPendingOrders: mitra-tools menjawab HTTP %d untuk GET /api/internal/topup/pending-orders", res.StatusCode)
+		return nil, fmt.Errorf("fetchBackendPendingOrders: backend menjawab HTTP %d untuk GET /api/internal/topup/pending-orders", res.StatusCode)
 	}
 	dec := json.NewDecoder(res.Body)
 	dec.UseNumber()
 	var raw []map[string]any
 	if err := dec.Decode(&raw); err != nil {
-		return nil, fmt.Errorf("fetchMitraPendingOrders: respons mitra-tools bukan JSON array yang valid")
+		return nil, fmt.Errorf("fetchBackendPendingOrders: respons backend bukan JSON array yang valid")
 	}
 	orders := make([]types.OrderPending, 0, len(raw))
 	for i, item := range raw {
 		o, err := parseOrderPending(item)
 		if err != nil {
-			return nil, fmt.Errorf("fetchMitraPendingOrders: pending-orders[%d]: %w", i, err)
+			return nil, fmt.Errorf("fetchBackendPendingOrders: pending-orders[%d]: %w", i, err)
 		}
 		orders = append(orders, o)
 	}
 	return orders, nil
 }
 
-// SettleMitraOrder melakukan POST {base}/api/internal/topup/settlements.
+// SettleBackendOrder melakukan POST {base}/api/internal/topup/settlements.
 // TIDAK melempar untuk 4xx/5xx yang masih berupa Response: pemanggil
 // yang memutuskan dari {Ok, Status, Body}.
-func SettleMitraOrder(ctx context.Context, client *http.Client, baseURL, token string, input SettleInput) (SettleResult, error) {
+func SettleBackendOrder(ctx context.Context, client *http.Client, baseURL, token string, input SettleInput) (SettleResult, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
@@ -284,10 +284,10 @@ func RunWireCycle(ctx context.Context, input CycleInput) (CycleResult, error) {
 
 // LiveCycleInput adalah input satu siklus wiring live.
 type LiveCycleInput struct {
-	MitraBaseURL string
-	Token        string
-	GobizConfig  gobiz.Config
-	Claimed      map[string]bool
+	BackendBaseURL string
+	Token          string
+	GobizConfig    gobiz.Config
+	Claimed        map[string]bool
 	// Session opsional untuk tes: bila diisi, file sesi TIDAK dibaca.
 	Session *gobiz.Session
 	// HTTPClient opsional untuk tes (nil = default).
@@ -295,7 +295,7 @@ type LiveCycleInput struct {
 }
 
 // RunLiveWireCycle menjalankan satu siklus wiring live: ambil pending
-// orders dari mitra-tools, lalu (hanya bila ada PENDING) ambil mutasi
+// orders dari backend, lalu (hanya bila ada PENDING) ambil mutasi
 // GoBiz, lalu settle.
 //
 //   - Bila tidak ada order PENDING: kembalikan skipped TANPA memanggil
@@ -311,7 +311,7 @@ func RunLiveWireCycle(ctx context.Context, input LiveCycleInput) (CycleResult, e
 	if client == nil {
 		client = http.DefaultClient
 	}
-	all, err := FetchMitraPendingOrders(ctx, client, input.MitraBaseURL, input.Token)
+	all, err := FetchBackendPendingOrders(ctx, client, input.BackendBaseURL, input.Token)
 	if err != nil {
 		return CycleResult{}, fmt.Errorf("backend-tidak-terjangkau: %w", err)
 	}
@@ -351,7 +351,7 @@ func RunLiveWireCycle(ctx context.Context, input LiveCycleInput) (CycleResult, e
 	return RunWireCycle(ctx, CycleInput{
 		Orders: pending, Mutations: mutations, Claimed: input.Claimed,
 		Settle: func(ctx context.Context, proposal types.Proposal) (SettleResult, error) {
-			return SettleMitraOrder(ctx, client, input.MitraBaseURL, input.Token, SettleInput{
+			return SettleBackendOrder(ctx, client, input.BackendBaseURL, input.Token, SettleInput{
 				OrderID: proposal.OrderID, TransactionID: proposal.TransactionID,
 				Amount: proposal.Amount, TransactedAt: proposal.TransactedAt,
 			})
@@ -392,7 +392,7 @@ func windowFromParsed(pending []types.OrderPending) (string, string, bool) {
 // ---------- Jeda loop wire (murni, mudah dites tanpa tidur) ----------
 
 // DefaultWireIntervalMs adalah interval default loop wire (3 detik,
-// perintah Hanif 2026-10-29: 60 detik kelamaan). Interval ini dipakai
+// sejak 2026-10-29: 60 detik kelamaan). Interval ini dipakai
 // saat ada order PENDING (siklus penuh ke GoBiz) MAUPUN saat idle
 // (hanya cek backend pending, murah, lokal, TANPA panggil GoBiz).
 // Deteksi order baru jadi maksimal 3 detik, bukan 60 detik.

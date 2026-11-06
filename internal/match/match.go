@@ -4,7 +4,7 @@
 // Kontrak yang diimplementasikan (harus lolos SEMUA):
 //  1. Nominal persis: amount (integer) == total_snapshot, tanpa float
 //     dan tanpa toleransi.
-//     1b. CEK IDENTITAS MDR (2026-10-28, atas permintaan Hanif): MDR
+//     1b. CEK IDENTITAS MDR (2026-10-28): MDR
 //     adalah identitas order. GoBiz TIDAK mengirim field MDR, jadi
 //     MDR mutasi diturunkan: mdr_tersirat = amount - price - fee.
 //     Bila order mengirim price, fee, dan mdr, pasangan hanya menang

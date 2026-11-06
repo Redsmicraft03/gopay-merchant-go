@@ -1,7 +1,7 @@
 // Package mdr berisi rumus MDR + kode unik POC untuk module GoPay
 // (jembatan, BUKAN kontrak global).
 //
-// ISTILAH YANG DIKUNCI HANIF (2026-10-28, koreksi atas rumus lama):
+// ISTILAH YANG DIKUNCI (2026-10-28, koreksi atas rumus lama):
 //
 //	MDR = kode unik (199-1999, direservasi per order).
 //	Fee = 0,3% x harga, hanya bila harga > 500.000 (di bawah itu 0).

@@ -1,7 +1,7 @@
 // Loop wire settlement berkala, dipakai BERSAMA oleh dua command:
 //   - cmd/wire -loop  (proses wire mandiri, cara lama — tetap jalan)
 //   - cmd/server      (server GoPay menjalankan loop ini DI DALAM
-//     prosesnya sendiri sejak 2026-10-29, perintah Hanif: server +
+//     prosesnya sendiri sejak 2026-10-29, keputusan: server +
 //     wire jadi 1 proses, 1 perintah, 1 terminal)
 //
 // Perilakunya SAMA PERSIS dengan loop lama di cmd/wire/main.go
@@ -15,7 +15,7 @@
 //   - bila error: dicatat, loop TIDAK crash, jeda memakai backoff
 //     error (60/120/240 detik, dibatasi MaxIdleMs)
 //   - klaim antar siklus disimpan di memori proses yang sama;
-//     pengaman ganda tetap mitra-tools yang menolak reuse
+//     pengaman ganda tetap backend yang menolak reuse
 //     transaction_id (409)
 //   - Wake (bila tidak nil) membangunkan loop dari tidurnya:
 //     dipakai server saat menerima push /notify-order, supaya siklus
@@ -37,11 +37,11 @@ import (
 // LoopInput adalah konfigurasi loop wire. Semua field dibaca dari
 // env yang sama dengan cmd/wire oleh pemanggil (bukan oleh RunLoop).
 type LoopInput struct {
-	MitraBaseURL string
-	Token        string
-	GobizConfig  gobiz.Config
-	BaseMs       int64
-	MaxIdleMs    int64
+	BackendBaseURL string
+	Token          string
+	GobizConfig    gobiz.Config
+	BaseMs         int64
+	MaxIdleMs      int64
 	// Wake, bila tidak nil, membangunkan loop dari jeda antar siklus.
 	Wake <-chan struct{}
 }
@@ -97,7 +97,7 @@ func RunLoop(ctx context.Context, input LoopInput) {
 	cycle := 0
 	var consecutiveFailures, consecutiveSkipped int64
 	printLoopJSON(map[string]any{
-		"event": "wire-loop-started", "baseMs": baseMs, "maxIdleMs": maxIdleMs, "mitraBaseUrl": input.MitraBaseURL,
+		"event": "wire-loop-started", "baseMs": baseMs, "maxIdleMs": maxIdleMs, "backendBaseUrl": input.BackendBaseURL,
 	})
 	for {
 		select {
@@ -108,7 +108,7 @@ func RunLoop(ctx context.Context, input LoopInput) {
 		}
 		cycle++
 		result, err := RunLiveWireCycle(ctx, LiveCycleInput{
-			MitraBaseURL: input.MitraBaseURL, Token: input.Token,
+			BackendBaseURL: input.BackendBaseURL, Token: input.Token,
 			GobizConfig: input.GobizConfig, Claimed: claimed,
 		})
 		var entry wirelog.Entry

@@ -2,7 +2,7 @@
 // plus MemoryStore untuk tes dan mode demo.
 //
 // Alasan memakai Postgres (bukan SQLite TS lama): proyek ini dimigrasi
-// ke gaya backend Hanif (Go + Fiber + GORM + Postgres), dan store
+// ke gaya backend umum (Go + Fiber + GORM + Postgres), dan store
 // harus bisa dipakai lebih dari satu instance bila nanti diperlukan.
 // Redis tetap bisa jadi pengganti nanti, tapi itu di luar tugas ini.
 //

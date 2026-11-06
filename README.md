@@ -1,16 +1,17 @@
 # gopay-merchant-go
 
-Robot pengecek pembayaran GoBiz + penghubung settlement untuk topup
-Talent Tools (mitra-tools). Satu perintah menjalankan semuanya:
-server poller, pencocokan pembayaran, dan wire settlement — dalam
-**satu proses**.
+Robot pengecek pembayaran GoBiz + penghubung settlement untuk
+backend apa pun. Aplikasi **independen** — bukan bagian dari produk
+atau tim mana pun; siapa pun bisa memakai dengan backend sendiri.
+Satu perintah menjalankan semuanya: server poller, pencocokan
+pembayaran, dan wire settlement — dalam **satu proses**.
 
-Cara kerja singkat: customer membayar order topup lewat QRIS GoPay
+Cara kerja singkat: pelanggan membayar order lewat QRIS GoPay
 → robot ini mengecek mutasi GoBiz → kalau nominalnya cocok persis
 dengan total order (harga + kode unik MDR + fee), robot mengusulkan
-settlement ke backend mitra-tools → backend mengkredit saldo talent.
+settlement ke backend → backend mengkredit saldo pengguna.
 Robot ini **tidak pernah** mengkredit saldo sendiri dan **tidak
-pernah** mengakses database mitra-tools langsung.
+pernah** mengakses database backend langsung.
 
 > **Peringatan jujur:** koneksi GoBiz di sini **meniru dashboard web
 > GoBiz, bukan API partner resmi** Meta/GoBiz. Pakai akun merchant
@@ -20,7 +21,8 @@ pernah** mengakses database mitra-tools langsung.
 ## Prasyarat
 
 - Go **>= 1.26** (`go version` untuk mengecek).
-- Backend mitra-tools jalan (default `http://localhost:8080`).
+- Backend kamu jalan (default `http://localhost:8080`) dan menyediakan
+  dua endpoint internal di bawah (lihat [Kontrak backend](#kontrak-backend)).
 - Akun GoBiz/GoPay merchant + nomor HP yang bisa menerima OTP
   (untuk login pertama).
 - Postgres (opsional tapi disarankan) — tanpa itu, klaim dan
@@ -30,11 +32,11 @@ pernah** mengakses database mitra-tools langsung.
 
 ```powershell
 # 1. Masuk folder proyek
-cd G:\KafeinArt\gopay-merchant-go
+cd gopay-merchant-go
 
 # 2. Salin contoh konfigurasi, lalu isi nilai yang wajib
 copy .env.example .env
-# Wajib diisi di .env: BRIDGE_INTERNAL_TOKEN (token internal mitra-tools),
+# Wajib diisi di .env: BRIDGE_INTERNAL_TOKEN (token internal backend),
 # SOURCE=gobiz, dan DATABASE_URL kalau pakai Postgres.
 # Nilai lain bisa dibiarkan default dulu.
 
@@ -79,9 +81,35 @@ go run ./cmd/wire -loop
 > **Jangan jalankan `cmd/wire -loop` bersamaan dengan server.**
 > Server sudah menjalankan wire loop yang sama di dalam prosesnya.
 > Dua loop akan memeriksa order yang sama — pengaman ganda di
-> mitra-tools (penolakan reuse `transaction_id`) mencegah kredit
+> backend (penolakan reuse `transaction_id`) mencegah kredit
 > dobel, tapi log jadi berisik dan siklusnya ganda. Berhenti bersih:
 > `Ctrl+C`.
+
+## Kontrak backend
+
+Robot ini tidak tahu apa-apa soal bisnismu — ia hanya bicara dengan
+backend lewat dua endpoint HTTP. Backend kamu harus menyediakan
+keduanya (path di bawah adalah kontrak saat ini; kalau backend kamu
+memakai path lain, ubah di `internal/wire/wire.go` pada
+`FetchBackendPendingOrders` / `SettleBackendOrder`).
+
+Semua panggilan memakai header
+`Authorization: Bearer <BRIDGE_INTERNAL_TOKEN>` dan base URL dari
+`BACKEND_BASE_URL`.
+
+| Endpoint backend | Keterangan |
+|---|---|
+| `GET /api/internal/topup/pending-orders` | Mengembalikan array JSON order PENDING: `order_id`, `total_snapshot`, `created_at`, `expiry_at`, `grace_end_at`, `status`. Opsional untuk cek MDR eksplisit: `price`, `fee`, `mdr`. Hanya order `PENDING` yang diproses. |
+| `POST /api/internal/topup/settlements` | Body JSON: `order_id`, `transaction_id`, `amount`, `transacted_at`. Backend wajib: (1) memastikan `amount` sama persis dengan total order, (2) **menolak reuse `transaction_id`** (satu transaksi hanya untuk satu order, misal jawab 409), (3) mengkredit saldo sesuai aturan bisnisnya sendiri — robot hanya memberitahu order mana yang terbayar, bukan menentukan jumlah kredit. |
+
+Jendela settlement ditentukan backend lewat `expiry_at` /
+`grace_end_at` tiap order (di pemakaian awal: 60 menit + 15 menit
+grace = 75 menit dari `created_at`).
+
+Sebaliknya, backend juga bisa membangunkan robot lewat
+`POST /notify-order` di server ini (tanpa auth, lokal saja) setiap
+ada order baru — robot lalu langsung menjalankan satu siklus wire,
+tanpa menunggu interval 3 detik.
 
 ## Konfigurasi (.env) — daftar lengkap
 
@@ -106,9 +134,9 @@ QRIS asli di `.env.example`, kode, atau README.
 | `GOBIZ_REFRESH_PATH` | default kode | Path endpoint refresh token (lanjutan). |
 | `GOBIZ_MERCHANT_CONFIG_PATH` | default kode | Path endpoint config merchant (lanjutan). |
 | `POLLER_INTERNAL_TOKEN` | _(kosong)_ | Token untuk `POST /mdr/reserve`. Kosong → endpoint mati (500); salah → 401. |
-| `POLLER_MDR_DURATION_MS` | `900000` (= 15 mnt) | Durasi reservasi MDR. Bukan kontrak topup global (60+15 mnt). |
+| `POLLER_MDR_DURATION_MS` | `900000` (= 15 mnt) | Durasi reservasi MDR. Bukan jendela settlement backend (60+15 mnt). |
 | `DATABASE_URL` | _(kosong)_ | DSN Postgres store reservations + claims. Kosong = MemoryStore (klaim hilang saat restart). **Produksi wajib diisi.** |
-| `MITRA_BASE_URL` | `http://localhost:8080` | Alamat backend mitra-tools. |
+| `BACKEND_BASE_URL` | `http://localhost:8080` | Alamat backend kamu. |
 | `BRIDGE_INTERNAL_TOKEN` | _(kosong)_ | **Wajib** untuk wire. Kosong → wire loop mati (server tetap jalan, settlement otomatis tidak jalan). Berbeda dari `POLLER_INTERNAL_TOKEN`. |
 | `WIRE_POLL_INTERVAL_MS` | `3000` | Interval wire loop (ms). |
 | `WIRE_MAX_IDLE_MS` | `300000` | Batas jeda idle/error wire loop (ms). Backoff error: 60/120/240 detik. |
@@ -161,10 +189,10 @@ Jangan expose port ini ke jaringan tanpa auth tambahan.
 | `/proposals` 500 `sumber-gobiz-error` | Sesi GoBiz hilang/kedaluwarsa. Jalankan `go run ./cmd/login` lagi. |
 | `/proposals` 500 `konfigurasi-tidak-valid` | `SOURCE` bukan `mock`/`gobiz`, atau token MDR belum di-set untuk `/mdr/reserve`. |
 | Order sudah dibayar tapi tetap PENDING | Cek `wire-decisions.log`: nominal tidak persis, di luar jendela 75 menit, atau MDR tidak cocok. Cek juga `/mutations` — pastikan mutasinya ada dan waktunya cocok. |
-| `backend-tidak-terjangkau` di log wire | Backend mitra-tools tidak jalan atau `MITRA_BASE_URL` salah. |
+| `backend-tidak-terjangkau` di log wire | Backend tidak jalan atau `BACKEND_BASE_URL` salah. |
 | Klaim/reservasi hilang setelah restart | `DATABASE_URL` kosong → MemoryStore. Isi `DATABASE_URL` Postgres, buat databasenya dulu, lalu restart. |
 | Port 3101 sudah dipakai | Server lain masih jalan di port itu, atau `PORT` di `.env` bentrok. Matikan proses lama dulu. |
-| `go build` gagal `requires go >= 1.26` | Update Go di laptop ke 1.26 atau lebih baru. |
+| `go build` gagal `requires go >= 1.26` | Update Go ke 1.26 atau lebih baru. |
 
 ## File penting (jangan dihapus/dibagikan sembarangan)
 
@@ -194,7 +222,7 @@ internal/mock/       # loader file dummy data/
 internal/store/      # Store: MemoryStore + PostgresStore (GORM)
 internal/reserve/    # reserveTotal (idempotent, anti-tabrakan)
 internal/bridge/     # jembatan POC (mock, bukan endpoint asli)
-internal/wire/       # wiring ke mitra-tools + jeda loop
+internal/wire/       # wiring ke backend + jeda loop
 internal/wirelog/    # log keputusan wire ke file
 internal/server/     # aplikasi Fiber + handler + siklus poller
 web/ui.html          # dashboard poller
@@ -211,11 +239,11 @@ data/                # orders.dummy.json + mutations.dummy.json (dummy)
 - Server + wire menjadi **satu proses** sejak 2026-10-29 (satu
   perintah `go run ./cmd/server`). Skrip `start-gopay.ps1` /
   `stop-gopay.ps1` lama sudah tidak berlaku.
-- Settlement live sudah terbukti jalan (dua order topup lunas
+- Settlement live sudah terbukti jalan (dua order lunas
   lewat wire, MDR cocok) — tapi **store Postgres belum pernah
   diuji live di sandbox** (tidak ada Postgres di sana). Sebelum
   memakai untuk apa pun selain demo, uji `DATABASE_URL` di laptop
   dan pastikan tabel `reservations` + `claims` terbentuk
   (AutoMigrate).
-- Jangan arahkan `DATABASE_URL` ke database mitra-tools — store
+- Jangan arahkan `DATABASE_URL` ke database backend — store
   poller harus database/skema sendiri.

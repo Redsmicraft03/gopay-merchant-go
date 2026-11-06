@@ -99,7 +99,7 @@ func TestRunWireCycleSkippedTanpaPending(t *testing.T) {
 	}
 }
 
-func TestFetchMitraPendingOrdersDanSettle(t *testing.T) {
+func TestFetchBackendPendingOrdersDanSettle(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/internal/topup/pending-orders", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer TOKEN-TEST" {
@@ -123,26 +123,26 @@ func TestFetchMitraPendingOrdersDanSettle(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	ctx := context.Background()
-	orders, err := FetchMitraPendingOrders(ctx, nil, srv.URL, "TOKEN-TEST")
+	orders, err := FetchBackendPendingOrders(ctx, nil, srv.URL, "TOKEN-TEST")
 	if err != nil || len(orders) != 1 || orders[0].MDR == nil || *orders[0].MDR != 1216 {
 		t.Fatalf("pending = %+v err = %v, mau 1 order MDR 1216", orders, err)
 	}
-	if _, err := FetchMitraPendingOrders(ctx, nil, srv.URL, "TOKEN-SALAH"); err == nil {
+	if _, err := FetchBackendPendingOrders(ctx, nil, srv.URL, "TOKEN-SALAH"); err == nil {
 		t.Fatal("token salah harus error (tanpa menampilkan token di pesan)")
 	}
-	res, err := SettleMitraOrder(ctx, nil, srv.URL, "TOKEN-TEST", SettleInput{OrderID: "ORDER-001", TransactionID: "TX-001", Amount: 2216, TransactedAt: "2026-10-28T10:10:00+07:00"})
+	res, err := SettleBackendOrder(ctx, nil, srv.URL, "TOKEN-TEST", SettleInput{OrderID: "ORDER-001", TransactionID: "TX-001", Amount: 2216, TransactedAt: "2026-10-28T10:10:00+07:00"})
 	if err != nil || !res.Ok || res.Status != 200 {
 		t.Fatalf("settle = %+v err = %v, mau ok 200", res, err)
 	}
-	res, err = SettleMitraOrder(ctx, nil, srv.URL, "TOKEN-TEST", SettleInput{OrderID: "ORDER-001", TransactionID: "TX-001", Amount: 1000, TransactedAt: "2026-10-28T10:10:00+07:00"})
+	res, err = SettleBackendOrder(ctx, nil, srv.URL, "TOKEN-TEST", SettleInput{OrderID: "ORDER-001", TransactionID: "TX-001", Amount: 1000, TransactedAt: "2026-10-28T10:10:00+07:00"})
 	if err != nil || res.Ok || res.Status != 400 {
 		t.Fatalf("settle salah = %+v err = %v, mau tidak ok 400 (tanpa throw)", res, err)
 	}
 }
 
 func TestRunLiveWireCycleEndToEndMock(t *testing.T) {
-	// Mitra mock.
-	mitra := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Backend mock.
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "/pending-orders") {
 			_, _ = w.Write([]byte(`[{"order_id":"ORDER-001","total_snapshot":2216,"created_at":"2026-10-28T10:00:00+07:00","expiry_at":"2026-10-28T11:00:00+07:00","grace_end_at":"2026-10-28T11:15:00+07:00","status":"PENDING","price":1000,"fee":0,"mdr":1216}]`))
@@ -150,7 +150,7 @@ func TestRunLiveWireCycleEndToEndMock(t *testing.T) {
 		}
 		_, _ = w.Write([]byte(`{"status":"PAID"}`))
 	}))
-	defer mitra.Close()
+	defer backend.Close()
 	// GoBiz mock: hanya endpoint transaksi yang dipakai live cycle.
 	gobizSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -168,7 +168,7 @@ func TestRunLiveWireCycleEndToEndMock(t *testing.T) {
 		ExpiresAt: "2099-01-01T00:00:00Z", MerchantID: "MERCHANT-TEST-001",
 	}
 	result, err := RunLiveWireCycle(context.Background(), LiveCycleInput{
-		MitraBaseURL: mitra.URL, Token: "TOKEN-TEST", GobizConfig: cfg,
+		BackendBaseURL: backend.URL, Token: "TOKEN-TEST", GobizConfig: cfg,
 		Claimed: map[string]bool{}, Session: session,
 	})
 	if err != nil {
@@ -179,7 +179,7 @@ func TestRunLiveWireCycleEndToEndMock(t *testing.T) {
 	}
 	// Backend tidak terjangkau -> error jelas, bukan skipped.
 	_, err = RunLiveWireCycle(context.Background(), LiveCycleInput{
-		MitraBaseURL: "http://127.0.0.1:1", Token: "TOKEN-TEST", GobizConfig: cfg,
+		BackendBaseURL: "http://127.0.0.1:1", Token: "TOKEN-TEST", GobizConfig: cfg,
 		Claimed: map[string]bool{}, Session: session,
 	})
 	if err == nil || !strings.Contains(err.Error(), "backend-tidak-terjangkau") {
