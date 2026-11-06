@@ -228,22 +228,3 @@ internal/server/     # aplikasi Fiber + handler + siklus poller
 web/ui.html          # dashboard poller
 data/                # orders.dummy.json + mutations.dummy.json (dummy)
 ```
-
-## Riwayat & catatan kejujuran
-
-- Migrasi dari proyek TypeScript/Bun lama ke Go pada
-  2026-10-29. Versi TS lama tetap ada berdampingan dan tidak
-  dihapus.
-- Verifikasi sandbox 2026-10-29: `gofmt` bersih, `go vet` exit 0,
-  `go build` exit 0, `go test ./...` **39 pass, 0 fail**.
-- Server + wire menjadi **satu proses** sejak 2026-10-29 (satu
-  perintah `go run ./cmd/server`). Skrip `start-gopay.ps1` /
-  `stop-gopay.ps1` lama sudah tidak berlaku.
-- Settlement live sudah terbukti jalan (dua order lunas
-  lewat wire, MDR cocok) — tapi **store Postgres belum pernah
-  diuji live di sandbox** (tidak ada Postgres di sana). Sebelum
-  memakai untuk apa pun selain demo, uji `DATABASE_URL` di laptop
-  dan pastikan tabel `reservations` + `claims` terbentuk
-  (AutoMigrate).
-- Jangan arahkan `DATABASE_URL` ke database backend — store
-  poller harus database/skema sendiri.
