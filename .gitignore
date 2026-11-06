@@ -1,0 +1,23 @@
+# Secret & sesi — jangan pernah di-commit
+.env
+.gobiz-session.json
+
+# Log (semua file .log/.err, termasuk wire-decisions.log)
+wire-decisions.log
+*.log
+*.err
+
+# Binary hasil build
+/mitrain-gopay-server
+/mitrain-gopay-wire
+/mitrain-gopay-login
+*.exe
+
+# Arsip transfer sekali pakai
+*.zip
+*.zip.b64
+*~
+
+# Sistem / editor
+.DS_Store
+Thumbs.db

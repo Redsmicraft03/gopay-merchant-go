@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poller GoBiz — Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f4f4f2; color: #1a1a1a; }
+  header { background: #1a1a1a; color: #fff; padding: 16px; }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; font-size: 13px; color: #ccc; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 8px; font-size: 17px; }
+  .card p.note { color: #555; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stat { border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+  .stat b { display: block; font-size: 22px; }
+  .stat span { font-size: 13px; color: #555; }
+  button { background: #1a1a1a; color: #fff; border: 0; border-radius: 6px; padding: 10px 14px; cursor: pointer; font-size: 14px; }
+  button.secondary { background: #fff; color: #1a1a1a; border: 1px solid #999; }
+  label { display: block; font-size: 13px; margin: 10px 0 4px; }
+  input { width: 100%; padding: 10px; border: 1px solid #999; border-radius: 6px; font-size: 15px; }
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 520px; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  pre { background: #f4f4f2; border: 1px solid #ddd; border-radius: 6px; padding: 12px; overflow-x: auto; font-size: 13px; white-space: pre-wrap; }
+  .error { color: #9a1b1b; font-size: 14px; }
+  .ok { color: #14532d; font-size: 14px; }
+  @media (max-width: 600px) {
+    main { padding: 12px; }
+    header h1 { font-size: 18px; }
+    .grid { grid-template-columns: 1fr; }
+    button { width: 100%; margin-top: 8px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Poller GoBiz — Dashboard</h1>
+  <p>Service terpisah, hanya mengusulkan kecocokan. Tidak mengubah saldo atau status order. Tidak ada auto-credit.</p>
+</header>
+<main>
+  <section class="card" id="status-card">
+    <h2>Status</h2>
+    <div class="grid">
+      <div class="stat"><b id="st-status">-</b><span>Status service</span></div>
+      <div class="stat"><b id="st-claimed">-</b><span>Transaksi diklaim</span></div>
+      <div class="stat"><b id="st-audit">-</b><span>Entri audit</span></div>
+    </div>
+    <p class="note" id="st-note"></p>
+    <button id="btn-health" type="button">Muat ulang status</button>
+  </section>
+
+  <section class="card" id="config-card">
+    <h2>Konfigurasi (tampil saja, tidak bisa diubah dari UI)</h2>
+    <pre id="config-pre">Memuat konfigurasi…</pre>
+    <p class="note">Hanya nilai aman yang ditampilkan. Token, isi sesi, nomor HP, OTP, merchant ID, QRIS, dan isi file .env tidak pernah ditampilkan di sini.</p>
+  </section>
+
+  <section class="card" id="proposals-card">
+    <h2>Usulan kecocokan</h2>
+    <p class="note">Perhatian: menekan tombol ini menjalankan satu siklus dan memajukan klaim lokal, sama seperti memanggil GET /proposals. Transaksi yang sudah diusulkan tidak diusulkan lagi.</p>
+    <button id="btn-proposals" type="button">Jalankan satu siklus usulan</button>
+    <p id="proposals-msg"></p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Order</th><th>Transaksi</th><th>Nominal</th><th>Waktu transaksi</th></tr></thead>
+      <tbody id="proposals-body"><tr><td colspan="4">Belum ada data. Tekan tombol di atas.</td></tr></tbody>
+    </table></div>
+    <h3>Keputusan siklus</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Order</th><th>Transaksi</th><th>Keputusan</th><th>Alasan</th></tr></thead>
+      <tbody id="decisions-body"><tr><td colspan="4">Belum ada data.</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" id="mutations-card">
+    <h2>Riwayat pembayaran GoBiz</h2>
+    <p class="note">BACA SAJA: menampilkan semua mutasi dalam rentang waktu, terbaru dulu — termasuk yang tidak cocok dengan order mana pun. Tidak memajukan klaim, tidak mengkredit, tidak mengubah status order. Di mode mock, yang tampil data dummy; di mode gobiz, yang tampil mutasi GoBiz asli (butuh sesi valid). Kalau Dari/Sampai dikosongkan, di mode gobiz otomatis dipakai 24 jam terakhir — karena GoBiz menolak query tanpa rentang.</p>
+    <label for="mut-start">Dari (opsional)</label>
+    <input id="mut-start" type="datetime-local">
+    <label for="mut-end">Sampai (opsional)</label>
+    <input id="mut-end" type="datetime-local">
+    <label for="mut-amount">Filter nominal (rupiah, opsional — kosongkan untuk semua)</label>
+    <input id="mut-amount" type="number" min="1" step="1" placeholder="mis. 2780">
+    <button id="btn-mutations" type="button">Muat riwayat</button>
+    <p id="mutations-msg"></p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Waktu transaksi</th><th>Nominal</th><th>ID transaksi</th><th>Status</th><th>Tipe</th><th>Sumber</th></tr></thead>
+      <tbody id="mutations-body"><tr><td colspan="6">Belum ada data. Tekan tombol di atas.</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" id="audit-card">
+    <h2>Audit</h2>
+    <button id="btn-audit" type="button">Muat ulang audit</button>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Waktu</th><th>Order</th><th>Transaksi</th><th>Keputusan</th><th>Alasan</th></tr></thead>
+      <tbody id="audit-body"><tr><td colspan="5">Belum ada data.</td></tr></tbody>
+    </table></div>
+  </section>
+
+  <section class="card" id="mdr-card">
+    <h2>Uji MDR (dummy saja)</h2>
+    <p class="note">Hanya untuk uji di localhost. Ini reservasi total saja, bukan kredit dan bukan order nyata. Gunakan order_id dummy.</p>
+    <form id="mdr-form">
+      <label for="order-id">Order ID (dummy)</label>
+      <input id="order-id" name="order_id" type="text" value="ORDER-UI-DUMMY-001" required>
+      <label for="price">Harga paket (rupiah, integer)</label>
+      <input id="price" name="price" type="number" min="1" step="1" value="100000" required>
+      <button type="submit">Hitung dan reserve total</button>
+    </form>
+    <p id="mdr-msg"></p>
+    <pre id="mdr-pre" hidden></pre>
+  </section>
+</main>
+<script>
+  function esc(value) {
+    return String(value === null || value === undefined ? "-" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function rows(tbodyId, rowsHtml, emptyText) {
+    document.getElementById(tbodyId).innerHTML = rowsHtml || '<tr><td colspan="5">' + emptyText + "</td></tr>";
+  }
+  async function loadHealth() {
+    try {
+      const res = await fetch("/health");
+      const data = await res.json();
+      document.getElementById("st-status").textContent = data.status || "-";
+      document.getElementById("st-claimed").textContent = data.claimed_count ?? "-";
+      document.getElementById("st-audit").textContent = data.audit_count ?? "-";
+      document.getElementById("st-note").textContent = data.note || "";
+    } catch (e) {
+      document.getElementById("st-status").textContent = "gagal memuat";
+    }
+  }
+  async function loadConfig() {
+    try {
+      const res = await fetch("/ui/config");
+      const data = await res.json();
+      document.getElementById("config-pre").textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      document.getElementById("config-pre").textContent = "Gagal memuat konfigurasi.";
+    }
+  }
+  async function loadProposals() {
+    const msg = document.getElementById("proposals-msg");
+    msg.textContent = "Menjalankan satu siklus…";
+    try {
+      const res = await fetch("/proposals");
+      const data = await res.json();
+      if (data.error) {
+        // Hanya kode error yang ditampilkan, bukan detail mentah
+        // (detail bisa memuat parameter request internal).
+        msg.textContent = "Gagal: " + (data.error || "sumber-error");
+        msg.className = "error";
+        return;
+      }
+      msg.textContent = "Sumber: " + esc(data.source || "-") + " | Usulan: " + (data.proposals ? data.proposals.length : 0);
+      msg.className = "ok";
+      rows("proposals-body", (data.proposals || []).map(function (p) {
+        return "<tr><td>" + esc(p.order_id) + "</td><td>" + esc(p.transaction_id) + "</td><td>" + esc(p.amount) + "</td><td>" + esc(p.transacted_at) + "</td></tr>";
+      }).join(""), "Tidak ada usulan.");
+      rows("decisions-body", (data.decisions || []).map(function (d) {
+        return "<tr><td>" + esc(d.order_id) + "</td><td>" + esc(d.transaction_id) + "</td><td>" + esc(d.decision) + "</td><td>" + esc(d.reason) + "</td></tr>";
+      }).join(""), "Tidak ada keputusan.");
+    } catch (e) {
+      msg.textContent = "Gagal memuat usulan.";
+      msg.className = "error";
+    }
+  }
+  async function loadAudit() {
+    try {
+      const res = await fetch("/audit");
+      const data = await res.json();
+      rows("audit-body", (data.audit_log || []).map(function (d) {
+        return "<tr><td>" + esc(d.logged_at) + "</td><td>" + esc(d.order_id) + "</td><td>" + esc(d.transaction_id) + "</td><td>" + esc(d.decision) + "</td><td>" + esc(d.reason) + "</td></tr>";
+      }).join(""), "Belum ada entri audit.");
+    } catch (e) {
+      rows("audit-body", "", "Gagal memuat audit.");
+    }
+  }
+  async function loadMutations() {
+    const msg = document.getElementById("mutations-msg");
+    msg.textContent = "Memuat riwayat…";
+    msg.className = "";
+    try {
+      const params = new URLSearchParams();
+      const start = document.getElementById("mut-start").value;
+      const end = document.getElementById("mut-end").value;
+      if (start) { params.set("start_time", new Date(start).toISOString()); }
+      if (end) { params.set("end_time", new Date(end).toISOString()); }
+      const query = params.toString();
+      const res = await fetch("/mutations" + (query ? "?" + query : ""));
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        msg.textContent = "Gagal: " + (data.error || "sumber-error") + (data.gobiz_code ? " (" + data.gobiz_code + ")" : "") + (data.gobiz_http_status ? " [HTTP " + data.gobiz_http_status + "]" : "");
+        msg.className = "error";
+        return;
+      }
+      const filterAmount = document.getElementById("mut-amount").value;
+      let list = data.mutations || [];
+      if (filterAmount !== "") {
+        list = list.filter(function (m) { return String(m.amount) === String(Number(filterAmount)); });
+      }
+      msg.textContent = "Sumber: " + esc(data.source || "-") + " | Mutasi: " + list.length + (filterAmount !== "" ? " (difilter nominal " + esc(filterAmount) + ")" : " (total " + (data.count ?? list.length) + ")") + (data.start_time || data.end_time ? " | Rentang: " + esc(data.start_time || "-") + " s.d. " + esc(data.end_time || "-") : "");
+      msg.className = "ok";
+      rows("mutations-body", list.map(function (m) {
+        return "<tr><td>" + esc(m.transacted_at) + "</td><td>" + esc(m.amount) + "</td><td>" + esc(m.transaction_id) + "</td><td>" + esc(m.status || "-") + "</td><td>" + esc(m.payment_type || "-") + "</td><td>" + esc(m.source) + "</td></tr>";
+      }).join(""), "Tidak ada mutasi dalam rentang ini.");
+    } catch (e) {
+      msg.textContent = "Gagal memuat riwayat.";
+      msg.className = "error";
+    }
+  }
+  document.getElementById("btn-mutations").addEventListener("click", loadMutations);
+  document.getElementById("btn-health").addEventListener("click", loadHealth);
+  document.getElementById("btn-proposals").addEventListener("click", loadProposals);
+  document.getElementById("btn-audit").addEventListener("click", loadAudit);
+  document.getElementById("mdr-form").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const msg = document.getElementById("mdr-msg");
+    const pre = document.getElementById("mdr-pre");
+    msg.textContent = "Menghitung…";
+    pre.hidden = true;
+    try {
+      const res = await fetch("/ui/reserve", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          order_id: document.getElementById("order-id").value,
+          price: Number(document.getElementById("price").value),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = "Gagal: " + (data.error || "input-tidak-valid");
+        msg.className = "error";
+        return;
+      }
+      msg.textContent = "Reservasi berhasil (uji saja, bukan kredit).";
+      msg.className = "ok";
+      pre.textContent = JSON.stringify(data, null, 2);
+      pre.hidden = false;
+    } catch (e) {
+      msg.textContent = "Gagal menghitung reservasi.";
+      msg.className = "error";
+    }
+  });
+  loadHealth();
+  loadConfig();
+  loadAudit();
+</script>
+</body>
+</html>
